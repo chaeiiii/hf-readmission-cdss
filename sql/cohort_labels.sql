@@ -29,7 +29,7 @@ admission_history AS (
         ON h.subject_id = past.subject_id
        AND past.hadm_id <> h.hadm_id
        AND past.admittime < h.admittime
-       AND past.dischtime <= h.admittime
+       AND past.dischtime < h.admittime
     GROUP BY h.hadm_id
 )
 SELECT
