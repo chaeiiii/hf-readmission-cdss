@@ -21,8 +21,7 @@ admission_history AS (
         h.hadm_id,
         COUNT(past.hadm_id) AS prior_admission_count,
         COUNT(past.hadm_id) FILTER (
-            WHERE past.admittime >=
-                h.admittime - INTERVAL '365 days'
+            WHERE past.admittime >= h.admittime - INTERVAL '365 days'
         ) AS prior_admission_count_365d
     FROM hf_admissions h
     LEFT JOIN mimiciv_hosp.admissions past
@@ -50,16 +49,18 @@ SELECT
     hist.prior_admission_count,
     hist.prior_admission_count_365d,
 
-    -- 잠정 레이블: ELECTIVE 제외 기준
+    -- 잠정 레이블: ELECTIVE와 수술 당일 입원을 제외한 30일 재입원
     CASE WHEN EXISTS (
         SELECT 1
         FROM mimiciv_hosp.admissions r
         WHERE r.subject_id = h.subject_id
           AND r.hadm_id <> h.hadm_id
           AND r.admittime > h.dischtime
-          AND r.admittime <=
-              h.dischtime + INTERVAL '30 days'
-          AND r.admission_type <> 'ELECTIVE'
+          AND r.admittime <= h.dischtime + INTERVAL '30 days'
+          AND r.admission_type NOT IN (
+              'ELECTIVE',
+              'SURGICAL SAME DAY ADMISSION'
+          )
     )
     THEN 1 ELSE 0 END AS readmission_30d_unplanned
 
